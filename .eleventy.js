@@ -1,4 +1,5 @@
 const path = require("path");
+const { HtmlBasePlugin } = require("@11ty/eleventy");
 
 // =============================================================================
 // LORE UNIVERSE — ELEVENTY CONFIGURATION
@@ -15,6 +16,17 @@ const path = require("path");
 // =============================================================================
 
 module.exports = function(eleventyConfig) {
+
+  // ---------------------------------------------------------------------------
+  // 0. PLUGINS
+  // ---------------------------------------------------------------------------
+  // HtmlBasePlugin rewrites all root-relative URLs in the final HTML output
+  // to include the pathPrefix defined in the return config below. This is
+  // required because the site is served from a subdirectory on GitHub Pages
+  // (loreuniverse.github.io/lorekeeper) rather than the domain root.
+  // Without this, nav links and all internal hrefs would 404.
+
+  eleventyConfig.addPlugin(HtmlBasePlugin);
 
   // ---------------------------------------------------------------------------
   // 1. PASSTHROUGH COPY
@@ -123,6 +135,10 @@ module.exports = function(eleventyConfig) {
   // as Nunjucks templates if needed.
 
   return {
+    // pathPrefix tells Eleventy (and HtmlBasePlugin) that the site is served
+    // from /lorekeeper/ on GitHub Pages, not the domain root. Update this
+    // value if the repo is ever renamed or moved to a custom domain.
+    pathPrefix: "/lorekeeper/",
     dir: {
       input: "src",
       output: "_site",
