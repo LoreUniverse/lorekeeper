@@ -32,31 +32,45 @@
 
 ## 3. Folder Structure
 
+The site is organized into **modules** living under `src/`. Each module gets its own URL namespace (e.g. `/lorekeeper/` for the Novels module). The site-wide `base.njk` provides the global navbar and chrome; module-specific links live on per-module landing pages.
+
 ```
 lorekeeper/
 ├── src/
-│   ├── _data/
-│   │   └── config.js           # Site-wide settings (wikiLinksVisible toggle)
+│   ├── _data/                  # Global data — auto-exposed as template variables
+│   │   ├── config.js           # wikiLinksVisible toggle (site-wide)
+│   │   ├── site.js             # Single source of truth for module URL paths
+│   │   └── navigation.js       # Navbar items (label, href, optional submenu)
 │   ├── _includes/              # Nunjucks layout templates
-│   │   ├── base.njk            # Root layout (head, header, footer)
-│   │   ├── wiki-entry.njk      # Generic wiki layout (fallback)
-│   │   ├── character.njk       # Layout for character pages
-│   │   ├── lore-trait.njk      # Layout for lore trait pages
-│   │   ├── mechanic.njk        # Layout for mechanic pages
-│   │   ├── location.njk        # Layout for location pages
-│   │   ├── faction.njk         # Layout for faction pages
-│   │   ├── lore.njk            # Layout for lore pages
-│   │   └── chapter.njk         # Layout for novel chapter pages
-│   ├── wiki/
-│   │   ├── index.md            # Wiki landing page
-│   │   ├── characters/         # One .md file per character
-│   │   ├── lore-traits/        # One .md file per Lore Trait
-│   │   ├── mechanics/          # One .md file per Mechanic
-│   │   ├── locations/          # One .md file per Location
-│   │   ├── factions/           # One .md file per Faction
-│   │   └── lore/               # One .md file per Lore entry
-│   ├── chapters/               # One .md file per novel chapter
-│   └── index.md                # Homepage
+│   │   ├── base.njk            # Root layout — nav, dropdown JS/CSS, footer
+│   │   ├── wiki-entry.njk      # Generic wiki layout (currently unused)
+│   │   ├── character.njk       # Per-category wiki layouts
+│   │   ├── lore-trait.njk
+│   │   ├── mechanic.njk
+│   │   ├── location.njk
+│   │   ├── faction.njk
+│   │   ├── lore.njk
+│   │   └── chapter.njk         # Novel chapter pages
+│   ├── lorekeeper/             # Novels module — /lorekeeper/
+│   │   ├── index.md            # Novels module landing page
+│   │   ├── books/              # Books submodule — /lorekeeper/books/
+│   │   │   ├── index.md        # Books landing — lists all books
+│   │   │   └── book1/
+│   │   │       └── chapters/   # /lorekeeper/books/book1/chapters/
+│   │   │           ├── index.md
+│   │   │           ├── chapters.11tydata.json
+│   │   │           └── *.md    # One file per chapter
+│   │   └── wiki/               # Wiki submodule — /lorekeeper/wiki/
+│   │       ├── index.md        # Wiki landing
+│   │       ├── characters/     # One .md file per character
+│   │       ├── lore-traits/
+│   │       ├── mechanics/
+│   │       ├── locations/
+│   │       ├── factions/
+│   │       └── lore/
+│   ├── about/
+│   │   └── index.md            # /about/
+│   └── index.md                # Site hub /
 ├── scripts/
 │   ├── create-structure.js     # One-time scaffold script (already run)
 │   ├── migrate-obsidian.js     # Converts Obsidian notes to site format
@@ -199,6 +213,21 @@ The script builds a lookup index from both staging files and already-migrated `s
 - Slugs in cross-references match filenames without the `.md` extension
 - Template files: camelCase or hyphen-separated `.njk` files in `_includes/`
 
+### Global Data Files (`src/_data/`)
+Eleventy automatically exposes every file in `src/_data/` as a template variable named after the file. Two patterns to follow:
+
+- **`site.js` is the single source of truth for module URL paths.** All templates and the `.eleventy.js` wiki link transform reference `site.modules.lorekeeper.{root, wiki, books}` instead of hardcoding paths. If a module is renamed or restructured, edit this file and everything else follows.
+- **`navigation.js` is the single source of truth for the navbar.** It exports an array of `{ label, href, submenu? }` items. `base.njk` renders the navbar from this — adding or reordering nav items is a one-file edit.
+
+Do not introduce hardcoded duplicates of paths that already live in these data files. If a new repeated value emerges (e.g. site-wide colors, author info), add a new data file rather than scattering literals.
+
+### Navbar Behavior
+- Three top-level items today (Home, Novels, About) — modular so adding items is one line in `navigation.js`.
+- A nav item with a `submenu` renders as a label link plus a separate chevron button. **The label click navigates to the parent landing page; the chevron click toggles the dropdown.** This split keeps the parent landing reachable from the navbar even on touch devices.
+- Dropdowns are click-to-open (not hover) so touch devices work. Outside click and Escape close them.
+- One level of dropdown only. Deeper hierarchy belongs on landing pages.
+- The inline CSS and JS for the dropdown in `base.njk` are placeholders — when a real stylesheet and `/assets/js/` exist, they should move out.
+
 ---
 
 ## 6. Current State
@@ -207,21 +236,29 @@ The script builds a lookup index from both staging files and already-migrated `s
 
 | Area | Status |
 |---|---|
-| GitHub repository | ✅ Created — https://github.com/LoreUniverse/loreuniverse.github.io |
+| GitHub repository | ✅ Renamed to https://github.com/LoreUniverse/loreuniverse.github.io |
+| Hosted at org-page root | ✅ Live at https://loreuniverse.github.io/ |
 | Local environment (Node, Git, VS Code) | ✅ Set up |
 | Eleventy project initialized | ✅ Done |
 | GitHub Actions deploy workflow | ✅ Done |
-| Base templates (base.njk, wiki-entry.njk, chapter.njk) | ✅ Done |
-| Per-category templates (character, faction, location, etc.) | ✅ Done |
-| Wiki collections configured | ✅ Done (all 6 categories with .11tydata.json and index pages) |
+| Base templates and per-category wiki templates | ✅ Done |
+| Wiki collections configured (6 categories) | ✅ Done |
 | Obsidian migration script | ✅ Done (`scripts/migrate-obsidian.js`) |
-| Wiki link processor | ✅ Done (built into `.eleventy.js`) |
-| Homepage | ✅ Done (`src/index.md`) |
-| Chapter listing page | ✅ Done (`src/chapters/index.md`) |
-| Wiki populated with real entries | ⬜ Not started |
+| Wiki link processor ({category\|slug\|display}) | ✅ Done (transform in `.eleventy.js`) |
+| Module-based folder + URL restructure | ✅ Done (Novels module under `/lorekeeper/`) |
+| Centralized URL data (`src/_data/site.js`) | ✅ Done |
+| Modular navbar with click-to-open dropdown | ✅ Done (data-driven from `src/_data/navigation.js`) |
+| Landing pages (site hub, Novels, Books, About) | ✅ Done (placeholder content; design deferred) |
+| Wiki populated with real entries | 🟡 In progress (first batch migrated: pinelopi, librarian, lore-essence-mythos, loreworlds) |
+| Book 1 chapters | ⬜ Test chapter only — real prose not started |
 | Visual design / theme | ⬜ Not started (deferred) |
+| Extract inline CSS/JS in `base.njk` to `/assets/` | ⬜ Pending — comes with design phase |
 
-**Next planned step:** Use `scripts/migrate-obsidian.js` to populate the site with real wiki entries — copy Obsidian notes into `scripts/staging/{category}/`, run the script, fill in the remaining front matter fields on the converted files, then copy them into `src/wiki/{category}/`.
+**Next planned step:** Continue populating the wiki with real entries via `scripts/migrate-obsidian.js`. After that, replace the test chapter with real Book 1 prose. Visual design is the next major phase once content density justifies it.
+
+**Outstanding small items worth doing soon:**
+- `src/_includes/wiki-entry.njk` exists but is unused — either repurpose as a fallback layout or delete
+- `scripts/create-structure.js` is a one-time setup script that already ran — consider archiving or deleting
 
 ---
 
@@ -251,18 +288,12 @@ The script builds a lookup index from both staging files and already-migrated `s
 
 Ideas and architectural concerns captured here so the foundation can grow into them. Not being worked on now — the current focus is a foundational Novels module with one book and a working wiki.
 
-### Architectural direction
-- **Module-based URL structure.** The site will be reorganized into independent "modules" under the root domain:
-  - `/` — Site hub (homepage with module access)
-  - `/lorekeeper/` — Novels module landing page
-  - `/lorekeeper/wiki/` — Wiki submodule
-  - `/lorekeeper/book-1/chapters/chapter-XX` — Books submodule (per-book namespacing avoids chapter-number collisions across books)
-  - Future modules might include `/game-resources/`, `/art/`, etc.
-- **Base navbar:** Home, Novels, About — module-specific links live in module landing pages, not the global navbar.
-- **Two-step navbar dropdown.** "Novels" in the navbar opens a small dropdown listing "Books landing" and "Wiki". The Books landing page itself lists individual books — no nested dropdowns.
-- **Dropdown behavior:** click/tap to open, not hover. Hover dropdowns break on touch devices. A separate chevron/affordance handles the distinction between "go to landing page" vs. "expand menu."
-- **Repo rename:** to host the site root at `loreuniverse.github.io`, the GitHub repo must be renamed to exactly `loreuniverse.github.io` (the GitHub org-page convention).
-- **Shared design layer:** before the second landing page is built, extract reusable partials (hero, module card, footer) into `_includes/partials/` and define shared CSS variables for color/typography.
+### Architectural direction (mostly implemented)
+The module-based URL structure, three-item modular navbar with click dropdown, repo rename, and centralized URL data are all done — see Section 6. Items in this category still pending:
+
+- **Future modules.** The structure is in place to add `/game-resources/`, `/art/`, etc. as siblings of `/lorekeeper/`. No work needed until a second module is wanted.
+- **Shared design layer.** Before the next module's landing page is built, extract reusable partials (hero, module card, featured-content tile, footer) into `_includes/partials/` and define shared CSS variables for color and typography. Also move the inline CSS/JS in `base.njk` into `/assets/` at this point.
+- **Books collection.** `src/lorekeeper/books/index.md` currently hand-lists Book 1. When a second book is added, replace the hand-list with a `books` collection driven by a `books.js` data file or by globbing `src/lorekeeper/books/*/info.md`.
 
 ### Cross-module linking convention
 - The current wiki link transform hardcodes `/lorekeeper/wiki/${category}/${slug}/`. This works for now because all custom links target wiki entries.
@@ -283,7 +314,9 @@ Ideas and architectural concerns captured here so the foundation can grow into t
 - **Spoiler-aware wiki** — wiki entries reveal only the information the reader's progress entitles them to see. Likely implemented as per-section visibility flags tied to chapter/arc markers.
 - **Accounts / forum** — user accounts powering progress tracking, and potentially a community forum.
 
-### Discoverability mitigation (for when the module restructure happens)
-The new structure buries wiki content two levels deep. The homepage and Novels landing page need to do real curatorial work to prevent visitors from missing the wiki's existence:
-- Homepage: featured content tiles (latest chapter, featured character, recent wiki entries) — not just module buttons.
-- Novels landing page: previews both submodules (latest chapter, popular wiki entries, content stats) — a real content page, not a routing intersection.
+### Discoverability mitigation (still in progress)
+The module structure buries wiki content two levels deep. Current landing pages have basic content hooks but mostly route rather than curate. Real curatorial work still pending:
+
+- **Homepage:** currently has three section cards (Novels, Start reading, Browse wiki). Should grow into featured-content tiles — latest chapter, featured character, recent wiki entries — pulled dynamically from collections.
+- **Novels landing page:** has a working latest-chapter preview. Should add popular wiki entries, content stats ("47 characters, 12 factions"), and visual previews so visitors can scan what is available.
+- Both pages contain comments marking the static destinations that should be replaced with dynamic content.
